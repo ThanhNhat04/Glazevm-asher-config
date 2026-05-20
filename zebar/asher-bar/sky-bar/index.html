@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Asher Smart Multi-Monitor Bar</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
+    />
+
+    <style>
+      :root {
+        --text-white: #ffffff;
+        --bg-pill-transparent: rgba(17, 17, 27, 0.65);
+        --grey-border: rgba(255, 255, 255, 0.2);
+        --pill-active: #89b4fa; 
+      }
+
+      /* ÉP BUỘC TRONG SUỐT HỆ THỐNG */
+      html, body, #root {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        background: transparent !important;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 13px;
+        font-weight: bold;
+        color: var(--text-white);
+        overflow: hidden;
+      }
+
+      /* ==========================================
+         KHÔNG CHO CHỌN CHUỘT (CHỐNG BÔI ĐEN)
+         ========================================== */
+      div, span, i, p {
+        cursor: default;
+        user-select: none;
+        -webkit-user-select: none; /* Hỗ trợ thêm cho các trình duyệt lõi Webkit */
+      }
+
+      /* BỐ CỤC CHIA 3 CỘT */
+      .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        height: 40px;
+        padding: 0 10px;
+        box-sizing: border-box;
+      }
+
+      .left-group { display: flex; justify-content: flex-start; align-items: center; flex: 1; }
+      .center-group { display: flex; justify-content: center; align-items: center; flex: 1; }
+      .right-group { display: flex; justify-content: flex-end; align-items: center; flex: 1; gap: 10px; }
+
+      /* THIẾT KẾ CÁC VIÊN THUỐC TRONG SUỐT */
+      .pill, .datetime-pill {
+        background-color: var(--bg-pill-transparent);
+        backdrop-filter: blur(8px);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        border: 1px solid var(--grey-border);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+      .pill { padding: 6px 14px; gap: 8px; }
+      .datetime-pill { padding: 6px 16px; }
+
+      .time-divider { margin: 0 8px; color: rgba(255, 255, 255, 0.4); }
+      .stat-item { display: flex; align-items: center; gap: 6px; }
+
+      /* ==========================================
+         CẤU TRÚC ĐỒNG BỘ CHỈ BÁO WORKSPACE (Ô VUÔNG)
+         ========================================== */
+      .workspace-container {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: max-content;
+      }
+
+      .workspace-square {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        background-color: rgba(255, 255, 255, 0.1); 
+        color: rgba(255, 255, 255, 0.6); 
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 13px;
+        font-weight: 800;
+        transition: all 0.2s ease;
+      }
+
+      .workspace-square.active {
+        background-color: var(--pill-active);
+        color: #11111b; 
+        box-shadow: 0 0 8px rgba(137, 180, 250, 0.6); 
+      }
+
+      i { font-size: 14px; color: var(--text-white); }
+    </style>
+
+    <script
+      src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"
+      integrity="sha256-aS0B0wnsaDByLfE16h4MDCP1fQFccysd1YWOcV+gbBo="
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+      import React, { useState, useEffect } from "https://esm.sh/react@18?dev";
+      import { createRoot } from "https://esm.sh/react-dom@18/client?dev";
+      import * as zebar from "https://esm.sh/zebar@3.3.1";
+
+      const providers = zebar.createProviderGroup({
+        cpu: { type: "cpu" },
+        memory: { type: "memory" },
+        glazewm: { type: "glazewm" },
+        date: { type: "date" },
+        network: { type: "network" },
+        battery: { type: "battery" }, 
+      });
+
+      createRoot(document.getElementById("root")).render(<App />);
+
+      function App() {
+        const [output, setOutput] = useState(providers.outputMap);
+
+        useEffect(() => {
+          providers.onOutput(() => setOutput(providers.outputMap));
+        }, []);
+
+        const cpuUsage = output.cpu?.usage ? Math.round(output.cpu.usage) : 0;
+        const memUsage = output.memory?.usage ? Math.round(output.memory.usage) : 0;
+
+        const dateObj = output.date?.current ? new Date(output.date.current) : new Date();
+        const formattedDate = dateObj.toLocaleDateString("en-US", { weekday: "short", day: "2-digit", month: "short" });
+        const formattedTime = dateObj.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+        // Xử lý dữ liệu Wifi
+        let wifiName = "Disconnected";
+        let wifiIcon = "fa-solid fa-wifi-slash";
+        if (output.network) {
+          const interfaceType = output.network.defaultInterface?.type;
+          const ssid = output.network.defaultGateway?.ssid;
+          if (interfaceType === "wifi") {
+            wifiName = ssid || "Wi-Fi"; wifiIcon = "fa-solid fa-wifi";
+          } else if (interfaceType === "ethernet") {
+            wifiName = "Ethernet"; wifiIcon = "fa-solid fa-ethernet";
+          } else if (ssid) {
+            wifiName = ssid; wifiIcon = "fa-solid fa-wifi";
+          }
+        }
+
+        // Xử lý dữ liệu Pin
+        const batPercent = output.battery?.chargePercent ? Math.round(output.battery.chargePercent) : 0;
+        const isCharging = output.battery?.isCharging;
+        let batIcon = "fa-solid fa-battery-full";
+        if (isCharging) batIcon = "fa-solid fa-bolt";
+        else if (batPercent > 80) batIcon = "fa-solid fa-battery-full";
+        else if (batPercent > 60) batIcon = "fa-solid fa-battery-three-quarters";
+        else if (batPercent > 40) batIcon = "fa-solid fa-battery-half";
+        else if (batPercent > 15) batIcon = "fa-solid fa-battery-quarter";
+        else batIcon = "fa-solid fa-battery-empty";
+
+        // =========================================================
+        // CƠ CHẾ NHẬN DIỆN THÔNG MINH (DƯỚI 5 VÀ TRÊN 5)
+        // =========================================================
+        let exactActiveName = "1";
+
+        if (output.glazewm?.currentWorkspaces) {
+          const activeWorkspaceOnThisMonitor = output.glazewm.currentWorkspaces.find(
+            (ws) => ws.isDisplayed || ws.hasFocus
+          );
+          if (activeWorkspaceOnThisMonitor) {
+            exactActiveName = activeWorkspaceOnThisMonitor.name;
+          }
+        }
+
+        const activeNumber = parseInt(exactActiveName, 10) || 1;
+        const displayedWorkspaces = activeNumber >= 5 ? [5, 6, 7, 8, 9] : [1, 2, 3, 4];
+
+        return (
+          <div className="container">
+            {/* TRÁI: Ô vuông Workspaces linh hoạt */}
+            <div className="left-group">
+              <div className="pill">
+                <div className="workspace-container">
+                  {displayedWorkspaces.map((num) => {
+                    const isSquareActive = exactActiveName === String(num);
+
+                    return (
+                      <div
+                        key={num}
+                        className={`workspace-square ${isSquareActive ? "active" : ""}`}
+                        title={`Workspace ${num}`}
+                      >
+                        {num}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* GIỮA: Ngày và Giờ */}
+            <div className="center-group">
+              <div className="datetime-pill">
+                <i className="fa-solid fa-calendar-days" style={{ marginRight: "6px" }}></i>
+                <span>{formattedDate}</span>
+                <span className="time-divider">|</span>
+               {/*  <i className="fa-solid fa-clock" style={{ marginRight: "6px" }}></i> */}
+                <span>{formattedTime}</span>
+              </div>
+            </div>
+
+            {/* PHẢI: Mạng, CPU, RAM, PIN */}
+            <div className="right-group">
+              <div className="pill">
+                <div className="stat-item">
+                  <i className={wifiIcon}></i>
+                  <span>{wifiName}</span>
+                </div>
+                
+                <span className="time-divider">|</span>
+                
+                <div className="stat-item">
+                  <i className="fa-solid fa-microchip"></i>
+                  <span>CPU: {cpuUsage}%</span>
+                </div>
+                
+                <span className="time-divider">|</span>
+                
+                <div className="stat-item">
+                  <i className="fa-solid fa-memory"></i>
+                  <span>RAM: {memUsage}%</span>
+                </div>
+                
+                <span className="time-divider">|</span>
+                
+                <div className="stat-item">
+                  <i className={batIcon}></i>
+                  <span>{batPercent}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+    </script>
+  </body>
+</html>

@@ -25,19 +25,17 @@
         padding: 0;
         background: transparent !important;
         font-family: "JetBrains Mono", ui-monospace, monospace;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: bold;
         color: var(--text-white);
         overflow: hidden;
       }
 
-      /* ==========================================
-         KHÔNG CHO CHỌN CHUỘT (CHỐNG BÔI ĐEN)
-         ========================================== */
+      /* KHÔNG CHO CHỌN CHUỘT (CHỐNG BÔI ĐEN) */
       div, span, i, p {
         cursor: default;
         user-select: none;
-        -webkit-user-select: none; /* Hỗ trợ thêm cho các trình duyệt lõi Webkit */
+        -webkit-user-select: none;
       }
 
       /* BỐ CỤC CHIA 3 CỘT */
@@ -70,9 +68,7 @@
       .time-divider { margin: 0 8px; color: rgba(255, 255, 255, 0.4); }
       .stat-item { display: flex; align-items: center; gap: 6px; }
 
-      /* ==========================================
-         CẤU TRÚC ĐỒNG BỘ CHỈ BÁO WORKSPACE (Ô VUÔNG)
-         ========================================== */
+      /* CẤU TRÚC ĐỒNG BỘ CHỈ BÁO WORKSPACE (Ô VUÔNG) */
       .workspace-container {
         display: flex;
         align-items: center;
@@ -89,7 +85,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 800;
         transition: all 0.2s ease;
       }
@@ -117,12 +113,12 @@
       import { createRoot } from "https://esm.sh/react-dom@18/client?dev";
       import * as zebar from "https://esm.sh/zebar@3.3.1";
 
+      // KHÔI PHỤC 'DATE', KHÔNG CÓ 'NETWORK'
       const providers = zebar.createProviderGroup({
         cpu: { type: "cpu" },
         memory: { type: "memory" },
         glazewm: { type: "glazewm" },
         date: { type: "date" },
-        network: { type: "network" },
         battery: { type: "battery" }, 
       });
 
@@ -138,24 +134,10 @@
         const cpuUsage = output.cpu?.usage ? Math.round(output.cpu.usage) : 0;
         const memUsage = output.memory?.usage ? Math.round(output.memory.usage) : 0;
 
+        // Xử lý dữ liệu Ngày giờ được khôi phục
         const dateObj = output.date?.current ? new Date(output.date.current) : new Date();
         const formattedDate = dateObj.toLocaleDateString("en-US", { weekday: "short", day: "2-digit", month: "short" });
         const formattedTime = dateObj.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
-
-        // Xử lý dữ liệu Wifi
-        let wifiName = "Disconnected";
-        let wifiIcon = "fa-solid fa-wifi-slash";
-        if (output.network) {
-          const interfaceType = output.network.defaultInterface?.type;
-          const ssid = output.network.defaultGateway?.ssid;
-          if (interfaceType === "wifi") {
-            wifiName = ssid || "Wi-Fi"; wifiIcon = "fa-solid fa-wifi";
-          } else if (interfaceType === "ethernet") {
-            wifiName = "Ethernet"; wifiIcon = "fa-solid fa-ethernet";
-          } else if (ssid) {
-            wifiName = ssid; wifiIcon = "fa-solid fa-wifi";
-          }
-        }
 
         // Xử lý dữ liệu Pin
         const batPercent = output.battery?.chargePercent ? Math.round(output.battery.chargePercent) : 0;
@@ -168,11 +150,8 @@
         else if (batPercent > 15) batIcon = "fa-solid fa-battery-quarter";
         else batIcon = "fa-solid fa-battery-empty";
 
-        // =========================================================
-        // CƠ CHẾ NHẬN DIỆN THÔNG MINH (DƯỚI 5 VÀ TRÊN 5)
-        // =========================================================
+        // Cơ chế nhận diện Workspace
         let exactActiveName = "1";
-
         if (output.glazewm?.currentWorkspaces) {
           const activeWorkspaceOnThisMonitor = output.glazewm.currentWorkspaces.find(
             (ws) => ws.isDisplayed || ws.hasFocus
@@ -187,7 +166,7 @@
 
         return (
           <div className="container">
-            {/* TRÁI: Ô vuông Workspaces linh hoạt */}
+            {/* TRÁI: Ô vuông Workspaces */}
             <div className="left-group">
               <div className="pill">
                 <div className="workspace-container">
@@ -208,27 +187,18 @@
               </div>
             </div>
 
-            {/* GIỮA: Ngày và Giờ */}
             <div className="center-group">
               <div className="datetime-pill">
                 <i className="fa-solid fa-calendar-days" style={{ marginRight: "6px" }}></i>
                 <span>{formattedDate}</span>
                 <span className="time-divider">|</span>
-               {/*  <i className="fa-solid fa-clock" style={{ marginRight: "6px" }}></i> */}
                 <span>{formattedTime}</span>
               </div>
             </div>
 
-            {/* PHẢI: Mạng, CPU, RAM, PIN */}
+            {/* PHẢI: Chỉ còn CPU, RAM, PIN */}
             <div className="right-group">
               <div className="pill">
-                <div className="stat-item">
-                  <i className={wifiIcon}></i>
-                  <span>{wifiName}</span>
-                </div>
-                
-                <span className="time-divider">|</span>
-                
                 <div className="stat-item">
                   <i className="fa-solid fa-microchip"></i>
                   <span>CPU: {cpuUsage}%</span>

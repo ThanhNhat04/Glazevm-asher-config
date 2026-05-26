@@ -62,6 +62,7 @@ window_effects:
     border:
       enabled: true
       color: '#00ffea'
+      # color: '#8dbcff'
 
     # Remove the title bar from the window's frame. Note that this can
     # cause rendering issues for some applications.
@@ -107,8 +108,9 @@ window_behavior:
   state_defaults:
     floating:
       # Whether to center floating windows by default.
+      # centered: true
       centered: true
-
+      
       # Whether to show floating windows as always on top.
       shown_on_top: false
 
@@ -134,7 +136,9 @@ workspaces:
 window_rules:
   - commands: ['ignore']
     match:
-      - window_process: { equals: 'Zalo' }
+      - window_process: { equals: 'Zalo' } 
+        window_class: { equals: 'ZaloToast' }   
+
       - window_process: { equals: 'Discord' }
       - window_process: { equals: 'steam' }
       - window_process: { equals: 'obs64' }
@@ -166,6 +170,7 @@ window_rules:
   - commands: ['set-floating']
     match:
       - window_process: { equals: 'Taskmgr' }
+      - window_process: { equals: 'Zalo' }
 
 binding_modes:
   # When enabled, the focused window can be resized via arrow keys or HJKL.
